@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import ttk
 from PIL import ImageTk, Image
 import sqlite3
 
@@ -1254,47 +1255,52 @@ root = tk.Tk()
 root.title("Paint Catalogue")
 
 #set window size
-root.geometry("600x400")
+root.geometry("800x600")
 
 #load image
-Abaddon = Image.open("images/citadel-abaddon-black.jpg").resize((250, 188))
-Abaddon = ImageTk.PhotoImage(Abaddon)
+#Abaddon = Image.open("images/citadel-abaddon-black.jpg").resize((250, 188))
+#Abaddon = ImageTk.PhotoImage(Abaddon)
 
 #create a label
-abaddon_label = tk.Label(root, image=Abaddon)
-abaddon_label.pack(pady=20)
-abaddon_label.image = Abaddon  # Keep reference
+abaddon_label = tk.Label(root, background = '#231F20').pack(expand = True, fill = 'both')
+#abaddon_label.image = Abaddon  # Keep reference
 
-#create listbox
-listbox = tk.Listbox(root, width=40, height=10,
-                    font=("Helvetica", 20))
-listbox.pack(pady=10)
+#treeview creation
+treeview = ttk.Treeview(root, columns=("name", "brand", "paint_type", "quantity"), show = "headings")
+treeview.heading("name", text="Name")
+treeview.heading("brand", text="Brand")
+treeview.heading("paint_type", text="Paint_Type")
+treeview.heading("quantity", text="Quantity")
+treeview.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-#print paints to listbox
-for row in paint_list:
-    listbox.insert(tk.END, str(row))
+#define connection and cursor
+connection = sqlite3.connect("store_paints.db")
+
+#used to execute SQL commands
+cursor = connection.cursor()
+
+#create paints table
+cursor.execute("CREATE TABLE IF NOT EXISTS paints (paint_name TEXT, paint_brand TEXT, paint_type TEXT, paint_quantity INTEGER)")
+
+#fill paints table with paint_list data
+cursor.executemany("insert into paints values (?, ?, ?, ?)", paint_list)
+
+#save database
+connection.commit()
+
+#retrieve data from paints table
+cursor.execute("SELECT paint_name, paint_brand, paint_type, paint_quantity FROM paints")
+rows = cursor.fetchall()
+
+#print paints to treeview table
+for row in rows:
+    treeview.insert(parent="", index="end", values=row)
+
+#print specific rows
+#cursor.execute("select * from paints where paint_type=:t", {"t": "Wash"})
 
 #start GUI event loop
 root.mainloop()
 
-
-#define connection and cursor
-connection = sqlite3.connect("store_paints.db")
-cursor = connection.cursor()
-
-#create paints table
-cursor.execute("create table paints (paint_name text, paint_brand text, paint_type text, paint_quantity integer)")
-
-cursor.executemany("insert into paints values (?, ?, ?, ?)", paint_list)
-
-#print database rows
-for row in cursor.execute("select * from paints"):
-    print(row)
-
-#print specific rows
-print("*************************************************")
-cursor.execute("select * from paints where paint_type=:t", {"t": "Wash"})
-paint_search = cursor.fetchall()
-print(paint_search)
-
+#End GUI event loop when closed
 connection.close()
